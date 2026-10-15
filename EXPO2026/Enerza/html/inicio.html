@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Enerzā - Sua casa</title>
+    <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .ctl span,
+        .music .m1 {
+            cursor: pointer;
+            user-select: none
+        }
+
+        .ctl span:hover {
+            color: var(--y)
+        }
+    </style>
+</head>
+
+<body>
+    <div class="scr">
+
+        <header>
+            <div class="logo"><img src="css/img/logoEnerza.png" alt="Logo Enerzā"></div>
+            <h1 class="t">Sua casa</h1>
+            <div class="tabs"><a href="inicio.html" class="on">Inicio</a><a href="sala.html">Sala</a><a
+                    href="cozinha.html">Cozinha</a><a href="quarto.html">Quarto</a><a href="banheiro.html">Banheiro</a>
+            </div>
+        </header>
+
+        <div class="grid ">
+            <nav class="box"><a href="inicio.html" class=on>🏠</a><a href="dispositivos.html">💡</a><a
+                    href="usuario.html">🛡</a><a href="sala.html">🌡</a>
+                <div class="sp"></div><a href="configuracao.html">⚙️</a><a href="index2.html">⏻</a>
+            </nav>
+            <div class="col">
+                <div class="box weather">
+                    <div class="ico">⛅</div>
+                    <div class="tt">25 c°</div>
+                </div>
+                <div class="box energy">
+                    <h3>Principais gastos<br>de<br>energia</h3>
+                    <div class="row">
+                        <div class="ic">📺</div>
+                        <div><b>Smart tv</b><small>1 dispositivo</small></div><span class="w">150 W</span>
+                    </div>
+                    <div class="row">
+                        <div class="ic">🎮</div>
+                        <div><b>PS5</b><small>1 dispositivo</small></div><span class="w">220W</span>
+                    </div>
+                    <div class="row">
+                        <div class="ic">❄️</div>
+                        <div><b>Ar-condicionado</b><small>1 dispositivo</small></div><span class="w">800 W</span>
+                    </div>
+                    <div class="row">
+                        <div class="ic">📡</div>
+                        <div><b>Roteador</b><small>1 dispositivo</small></div><span class="w">10 W</span>
+                    </div>
+                    <div class="row">
+                        <div class="ic">💡</div>
+                        <div><b>Lâmpada</b><small>4 dispositivo</small></div><span class="w">16 W</span>
+                    </div>
+                </div>
+                <div class="box energy">
+                    <h3>Xiaomi Home</h3>
+                    <div id="xm-lista"><small>Carregando aparelhos...</small></div>
+                </div>
+            </div>
+            <div class="right">
+                <div class="top">
+                    <div class="box music">
+                        <div class="m1" id="sp-info" title="Clique para conectar ao Spotify">
+                            <div class="cover" id="sp-cover"></div>
+                            <div><b id="sp-titulo">No Pole</b><small id="sp-artista">Don Toliver</small></div>
+                        </div>
+                        <div class="bar"><i id="sp-prog"></i></div>
+                        <div class="ctl"><span id="sp-prev">⏮</span><span id="sp-pp">⏸</span><span id="sp-next">⏭</span>
+                        </div>
+                    </div>
+                    <div class="box wifi">
+                        <div class="w1"><span style="font-size:26px">📶</span>
+                            <div><b>Wi-fi</b><small>Unifecaf</small></div><label class="tg"><input type="checkbox"
+                                    checked><span></span></label>
+                        </div>
+                        <div class="w2">
+                            <span><em>sinal</em>Excelente</span><span><em>Segurança</em>WPA2/WPA3</span><span><em>Velocidade</em>800
+                                Mbps</span></div>
+                    </div>
+                </div>
+                <div class="box rooms">
+                    <div class="view p-quarto">
+                        <div class="tag">Quarto <label class="star"><input type="checkbox" checked>★</label></div>
+                    </div>
+                    <div class="view p-cam">
+                        <div class="tag">Camera da sala</div><span class="live">● AO VIVO</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script/script.js"></script>
+</body>
+
+</html>
