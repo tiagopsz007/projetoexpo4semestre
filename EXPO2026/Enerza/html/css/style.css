@@ -1032,3 +1032,11 @@ nav a:hover {
     background: rgba(54, 60, 72, .92)
   }
 }
+
+.login-links {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%; /* Garante que o container ocupe toda a largura disponível */
+  margin-bottom: 15px; /* Espaçamento em relação aos botões abaixo */
+}

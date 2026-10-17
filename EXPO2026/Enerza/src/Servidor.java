@@ -1,4 +1,6 @@
+
 import com.sun.net.httpserver.HttpExchange;
+import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
 
 import java.awt.Desktop;
@@ -18,13 +20,15 @@ import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
 import java.util.concurrent.Executors;
 
 /**
  * Servidor da aplicação Enerzā.
  * - Serve os arquivos HTML/CSS/JS/imagens da pasta do projeto
- * - /spotify/*  e /api/spotify/*  -> integração com o Spotify (o token fica só no servidor)
- * - /api/xiaomi/*                  -> controle de aparelhos Xiaomi (Mi Home) pela rede local
+ * - /api/auth/*                    -> cadastro e login
+ * - /spotify/*  e /api/spotify/*  -> integração com o Spotify (exige login)
+ * - /api/xiaomi/*                  -> controle de aparelhos Xiaomi (exige login)
  */
 public class Servidor {
 
@@ -42,7 +46,11 @@ public class Servidor {
         TIPOS.put("webp", "image/webp");
     }
 
+    // páginas que podem ser abertas sem estar logado
+    private static final Set<String> PAGINAS_PUBLICAS = Set.of("index.html", "cadastro.html", "login2.html");
+
     private static Path raiz;
+    private static AuthService auth;
 
     public static void main(String[] args) throws Exception {
         Properties cfg = new Properties();
@@ -59,14 +67,21 @@ public class Servidor {
         raiz = Paths.get(cfg.getProperty("pasta.web", ".")).toAbsolutePath().normalize();
         String base = "http://127.0.0.1:" + porta;
 
+        try {
+            auth = new AuthService(cfg);
+        } catch (Exception e) {
+            System.out.println("ERRO MySQL: " + e.getMessage());
+            System.exit(1);
+        }
         SpotifyService spotify = new SpotifyService(cfg, base);
         XiaomiService xiaomi = new XiaomiService(cfg);
 
         HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", porta), 0);
         server.setExecutor(Executors.newFixedThreadPool(8));
-        server.createContext("/spotify/", spotify::tratar);
-        server.createContext("/api/spotify/", spotify::tratar);
-        server.createContext("/api/xiaomi/", xiaomi::tratar);
+        server.createContext("/api/auth/", auth::tratar);
+        server.createContext("/spotify/", protegido(spotify::tratar));
+        server.createContext("/api/spotify/", protegido(spotify::tratar));
+        server.createContext("/api/xiaomi/", protegido(xiaomi::tratar));
         server.createContext("/", Servidor::arquivoEstatico);
         server.start();
 
@@ -76,16 +91,35 @@ public class Servidor {
         }
     }
 
+    /** Só deixa passar quem está logado: API responde 401, páginas redirecionam para o login. */
+    private static HttpHandler protegido(HttpHandler h) {
+        return ex -> {
+            if (auth.emailLogado(ex) != null) { h.handle(ex); return; }
+            try {
+                if (ex.getRequestURI().getPath().startsWith("/api/")) json(ex, 401, "{\"erro\":\"não autenticado\"}");
+                else redirecionar(ex, "/html/login2.html");
+            } finally {
+                ex.close();
+            }
+        };
+    }
+
     private static void arquivoEstatico(HttpExchange ex) throws IOException {
         try {
             String caminho = URLDecoder.decode(ex.getRequestURI().getRawPath(), "UTF-8");
-            if (caminho.equals("/")) caminho = "/html/index.html";
+            if (caminho.equals("/")) caminho = Files.exists(raiz.resolve("html/index.html")) ? "/html/index.html" : "/index.html";
             Path arq = raiz.resolve(caminho.substring(1)).normalize();
-            String ext = extensao(arq.getFileName() == null ? "" : arq.getFileName().toString());
+            String nome = arq.getFileName() == null ? "" : arq.getFileName().toString();
+            String ext = extensao(nome);
 
             // só entrega arquivos dentro da pasta do projeto e de tipos conhecidos (nunca config.properties ou .java)
             if (!arq.startsWith(raiz) || !TIPOS.containsKey(ext) || !Files.isRegularFile(arq)) {
                 enviar(ex, 404, "text/plain; charset=utf-8", "Página não encontrada".getBytes(StandardCharsets.UTF_8));
+                return;
+            }
+            // páginas internas (inicio.html etc.) exigem login
+            if (ext.equals("html") && !PAGINAS_PUBLICAS.contains(nome) && auth.emailLogado(ex) == null) {
+                redirecionar(ex, "/html/login2.html");
                 return;
             }
             ex.getResponseHeaders().set("Cache-Control", "no-cache");
@@ -122,9 +156,18 @@ public class Servidor {
     }
 
     static Map<String, String> query(HttpExchange ex) {
+        return parse(ex.getRequestURI().getRawQuery());
+    }
+
+    /** Lê o corpo de um formulário (application/x-www-form-urlencoded), limitado a 8 KB. */
+    static Map<String, String> formulario(HttpExchange ex) throws IOException {
+        byte[] b = ex.getRequestBody().readNBytes(8192);
+        return parse(new String(b, StandardCharsets.UTF_8));
+    }
+
+    private static Map<String, String> parse(String q) {
         Map<String, String> m = new HashMap<>();
-        String q = ex.getRequestURI().getRawQuery();
-        if (q == null) return m;
+        if (q == null || q.isEmpty()) return m;
         for (String par : q.split("&")) {
             int i = par.indexOf('=');
             try {

@@ -99,3 +99,11 @@ async function xmCarregar() {
     }
 }
 xmCarregar();
+
+/* ---------- Sessão ---------- */
+$("sair").onclick = async e => {
+    e.preventDefault();
+    try { await fetch("/api/auth/logout", { method: "POST" }); } catch (_) { }
+    location.href = "/";
+};
+
