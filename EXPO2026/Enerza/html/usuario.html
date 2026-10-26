@@ -4,7 +4,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Enerzā - Usuário</title>
+    <title>Enerza - Usuário</title>
     <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/style.css">
 </head>
@@ -16,15 +16,30 @@
             <h1 class="t">Usuario</h1>
         </header>
         <div class="grid w2c">
-            <nav class="box"><a href="inicio.html">🏠</a><a href="dispositivos.html">💡</a><a href="usuario.html"
-                    class=on>🛡</a><a href="sala.html">🌡</a>
-                <div class="sp"></div><a href="configuracao.html">⚙️</a><a href="index2.html">⏻</a>
+            <nav class="box"><a href="inicio.html"><img src="css/img/casa.png" alt="Início"></a>
+                <a href="dispositivos.html"><img src="css/img/lampada.png" alt="Dispositivos"></a>
+                
+                <a href="sala.html"><img src="css/img/temp.png" alt="Sala"></a>
+
+                <div class="sp"></div>
+                
+                <a href="configuracao.html" class=on><img src="css/img/config.png" alt="Configurações"></a>
+                <a href="index2.html" id="sair" title="Sair"><img src="css/img/saida.png" alt="Sair"></a>
             </nav>
             <div>
                 <div class="box prof">
-                    <div class="av">👤</div>
-                    <div><b>Thiago Silva</b><br><small>thiago@email.com</small></div><a class="btn" href="#"
-                        style="margin-left:auto">Editar</a>
+                        <div class="av">👤</div>
+                        
+                        <div>
+                            <b class="nome">Tiago Silva</b>
+                            <br>
+                            <br><small class="infopq">tiago@email.com</small>
+                            <br><small class="infopq">senha: ******************</small>
+                            <br><small class="infopq">cargo: Administrador</small>
+                        </div>
+
+                    <a class="btn" href="#" style="margin-left:auto">Editar</a>
+
                 </div>
                 <div class="pref">
                     <div class="box">
@@ -37,14 +52,14 @@
                         </select>
                     </div>
                     <div class="box">
-                        <h4>Dispositivos conectados</h4>
-                        <div class="chk"><label class="tg"><input type="checkbox" checked><span></span></label> Tv da
-                            sala</div>
-                        <div class="chk"><label class="tg"><input type="checkbox" checked><span></span></label> Roteador
-                        </div>
-                        <div class="chk"><label class="tg"><input type="checkbox"><span></span></label> Lâmpada da
-                            cozinha</div>
-                    </div>
+    <h4 style="display: flex; justify-content: space-between; align-items: center;">
+        <span>Dispositivos conectados</span>
+        <a href="dispositivos.html"><img src="css/img/proximo.png" alt="Próximo"></a>
+    </h4>
+    <div class="chk"><label class="tg"><input type="checkbox" checked><span></span></label> Tv da sala</div>
+    <div class="chk"><label class="tg"><input type="checkbox" checked><span></span></label> Roteador</div>
+    <div class="chk"><label class="tg"><input type="checkbox"><span></span></label> Lâmpada da cozinha</div>
+</div>
                 </div>
             </div>
         </div>
