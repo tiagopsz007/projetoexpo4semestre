@@ -18,6 +18,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.ArrayList;
 import java.util.Base64;
 import java.util.HexFormat;
 import java.util.List;
@@ -45,8 +46,10 @@ class AuthService {
     private static final long CURTA = 12L * 3600;        // sessão normal: 12 horas
 
     private static class Usuario {
-        final long id; final String nome, email;
-        Usuario(long id, String nome, String email) { this.id = id; this.nome = nome; this.email = email; }
+        final long id, familiaId; final String nome, email, cargo;
+        Usuario(long id, String nome, String email, long familiaId, String cargo) {
+            this.id = id; this.nome = nome; this.email = email; this.familiaId = familiaId; this.cargo = cargo;
+        }
     }
 
     private final String urlServidor, urlBanco, dbUsuario, dbSenha, dbNome;
@@ -80,13 +83,23 @@ class AuthService {
             throw new Exception("não consegui conectar ao MySQL (" + e.getMessage() + "). Confira db.host, db.porta, db.usuario e db.senha no config.properties");
         }
         try (Connection c = conectar(); Statement s = c.createStatement()) {
+            s.executeUpdate("CREATE TABLE IF NOT EXISTS familias ("
+                    + "id BIGINT AUTO_INCREMENT PRIMARY KEY,"
+                    + "nome VARCHAR(80) NOT NULL,"
+                    + "criado_em TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP"
+                    + ") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
             s.executeUpdate("CREATE TABLE IF NOT EXISTS usuarios ("
                     + "id BIGINT AUTO_INCREMENT PRIMARY KEY,"
                     + "nome VARCHAR(60) NOT NULL,"
                     + "email VARCHAR(255) NOT NULL UNIQUE,"
                     + "senha_sal VARBINARY(16) NOT NULL,"
                     + "senha_hash VARBINARY(32) NOT NULL,"
-                    + "criado_em TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP"
+                    + "criado_em TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,"
+                    + "familia_id BIGINT NULL,"
+                    + "familia_origem_id BIGINT NULL,"
+                    + "cargo VARCHAR(10) NOT NULL DEFAULT 'admin',"
+                    + "FOREIGN KEY (familia_id) REFERENCES familias(id),"
+                    + "FOREIGN KEY (familia_origem_id) REFERENCES familias(id)"
                     + ") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
             s.executeUpdate("CREATE TABLE IF NOT EXISTS sessoes ("
                     + "token_hash CHAR(64) PRIMARY KEY,"
@@ -96,10 +109,83 @@ class AuthService {
                     + ") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
             s.executeUpdate("DELETE FROM sessoes WHERE expira_em < " + System.currentTimeMillis());
             migrarArquivoAntigo(c);
+            migrarFamilias(c);
             try (ResultSet rs = s.executeQuery("SELECT COUNT(*) FROM usuarios")) {
                 rs.next();
                 System.out.println("MySQL: banco '" + dbNome + "' pronto, " + rs.getLong(1) + " usuário(s).");
             }
+        }
+    }
+
+    /** Bancos criados antes das famílias: adiciona as colunas e cria uma família (com o usuário como admin) para cada conta. */
+    private void migrarFamilias(Connection c) throws SQLException {
+        boolean existe;
+        try (PreparedStatement ps = c.prepareStatement("SELECT COUNT(*) FROM information_schema.COLUMNS "
+                + "WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'usuarios' AND COLUMN_NAME = 'familia_id'")) {
+            ps.setString(1, dbNome);
+            try (ResultSet rs = ps.executeQuery()) { rs.next(); existe = rs.getLong(1) > 0; }
+        }
+        if (!existe) {
+            try (Statement st = c.createStatement()) {
+                st.executeUpdate("ALTER TABLE usuarios ADD COLUMN familia_id BIGINT NULL, "
+                        + "ADD COLUMN cargo VARCHAR(10) NOT NULL DEFAULT 'admin', "
+                        + "ADD FOREIGN KEY (familia_id) REFERENCES familias(id)");
+            }
+        }
+        List<Object[]> semFamilia = new ArrayList<>();
+        try (Statement st = c.createStatement(); ResultSet rs = st.executeQuery("SELECT id, nome FROM usuarios WHERE familia_id IS NULL")) {
+            while (rs.next()) semFamilia.add(new Object[]{rs.getLong(1), rs.getString(2)});
+        }
+        for (Object[] u : semFamilia) {
+            long fam = criarFamilia(c, (String) u[1]);
+            try (PreparedStatement ps = c.prepareStatement("UPDATE usuarios SET familia_id = ?, cargo = 'admin' WHERE id = ?")) {
+                ps.setLong(1, fam); ps.setLong(2, (Long) u[0]);
+                ps.executeUpdate();
+            }
+        }
+        boolean temOrigem;
+        try (PreparedStatement ps = c.prepareStatement("SELECT COUNT(*) FROM information_schema.COLUMNS "
+                + "WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'usuarios' AND COLUMN_NAME = 'familia_origem_id'")) {
+            ps.setString(1, dbNome);
+            try (ResultSet rs = ps.executeQuery()) { rs.next(); temOrigem = rs.getLong(1) > 0; }
+        }
+        if (!temOrigem) {
+            try (Statement st = c.createStatement()) {
+                st.executeUpdate("ALTER TABLE usuarios ADD COLUMN familia_origem_id BIGINT NULL, "
+                        + "ADD FOREIGN KEY (familia_origem_id) REFERENCES familias(id)");
+                // admins: a família atual é a de origem; quem já tinha sido movido ganha uma família de origem própria
+                st.executeUpdate("UPDATE usuarios SET familia_origem_id = familia_id WHERE cargo = 'admin'");
+            }
+            List<Long> semOrigem = new ArrayList<>();
+            List<String> nomes = new ArrayList<>();
+            try (Statement st = c.createStatement(); ResultSet rs = st.executeQuery(
+                    "SELECT id, nome FROM usuarios WHERE familia_origem_id IS NULL")) {
+                while (rs.next()) { semOrigem.add(rs.getLong(1)); nomes.add(rs.getString(2)); }
+            }
+            for (int i = 0; i < semOrigem.size(); i++) {
+                long fam = criarFamilia(c, nomes.get(i));
+                try (PreparedStatement ps = c.prepareStatement("UPDATE usuarios SET familia_origem_id = ? WHERE id = ?")) {
+                    ps.setLong(1, fam); ps.setLong(2, semOrigem.get(i));
+                    ps.executeUpdate();
+                }
+            }
+        }
+        if (!semFamilia.isEmpty()) System.out.println("MySQL: " + semFamilia.size() + " família(s) criada(s) para contas existentes.");
+    }
+
+    /** True se alguém tem esta família como a criada no próprio cadastro (ela não pode ser apagada). */
+    private boolean ehOrigem(Connection c, long familiaId) throws SQLException {
+        try (PreparedStatement ps = c.prepareStatement("SELECT COUNT(*) FROM usuarios WHERE familia_origem_id = ?")) {
+            ps.setLong(1, familiaId);
+            try (ResultSet rs = ps.executeQuery()) { rs.next(); return rs.getLong(1) > 0; }
+        }
+    }
+
+    private long criarFamilia(Connection c, String nomeUsuario) throws SQLException {
+        try (PreparedStatement ps = c.prepareStatement("INSERT INTO familias (nome) VALUES (?)", Statement.RETURN_GENERATED_KEYS)) {
+            ps.setString(1, "Família de " + nomeUsuario);
+            ps.executeUpdate();
+            try (ResultSet rs = ps.getGeneratedKeys()) { rs.next(); return rs.getLong(1); }
         }
     }
 
@@ -136,6 +222,11 @@ class AuthService {
             else if (p.equals("/api/auth/login") && post) login(ex);
             else if (p.equals("/api/auth/logout") && post) logout(ex);
             else if (p.equals("/api/auth/eu")) eu(ex);
+            else if (p.equals("/api/auth/senha") && post) alterarSenha(ex);
+            else if (p.equals("/api/auth/familia")) familia(ex);
+            else if (p.equals("/api/auth/familia/adicionar") && post) adicionarMembro(ex);
+            else if (p.equals("/api/auth/familia/remover") && post) removerMembro(ex);
+            else if (p.equals("/api/auth/familia/cargo") && post) alterarCargo(ex);
             else Servidor.json(ex, 404, "{\"erro\":\"rota inexistente\"}");
         } catch (SQLException e) {
             e.printStackTrace();
@@ -170,16 +261,25 @@ class AuthService {
         byte[] sal = new byte[16];
         RND.nextBytes(sal);
         long id;
-        try (Connection c = conectar();
-             PreparedStatement ps = c.prepareStatement(
-                     "INSERT INTO usuarios (nome, email, senha_sal, senha_hash) VALUES (?,?,?,?)", Statement.RETURN_GENERATED_KEYS)) {
-            ps.setString(1, nome); ps.setString(2, email);
-            ps.setBytes(3, sal); ps.setBytes(4, hash(senha, sal));
-            ps.executeUpdate();
-            try (ResultSet rs = ps.getGeneratedKeys()) { rs.next(); id = rs.getLong(1); }
-        } catch (SQLException e) {
-            if (e.getErrorCode() == 1062) { erro(ex, 409, "Este email já está cadastrado."); return; }  // chave duplicada
-            throw e;
+        try (Connection c = conectar()) {
+            c.setAutoCommit(false);
+            try {
+                long familiaId = criarFamilia(c, nome);   // todo cadastro nasce com uma família nova, da qual a pessoa é admin
+                try (PreparedStatement ps = c.prepareStatement(
+                        "INSERT INTO usuarios (nome, email, senha_sal, senha_hash, familia_id, familia_origem_id, cargo) VALUES (?,?,?,?,?,?,'admin')",
+                        Statement.RETURN_GENERATED_KEYS)) {
+                    ps.setString(1, nome); ps.setString(2, email);
+                    ps.setBytes(3, sal); ps.setBytes(4, hash(senha, sal));
+                    ps.setLong(5, familiaId); ps.setLong(6, familiaId);
+                    ps.executeUpdate();
+                    try (ResultSet rs = ps.getGeneratedKeys()) { rs.next(); id = rs.getLong(1); }
+                }
+                c.commit();
+            } catch (SQLException e) {
+                c.rollback();
+                if (e.getErrorCode() == 1062) { erro(ex, 409, "Este email já está cadastrado."); return; }  // chave duplicada
+                throw e;
+            }
         }
         iniciarSessao(ex, id, false);
         Servidor.json(ex, 201, "{\"ok\":true,\"nome\":\"" + Servidor.escaparJson(nome) + "\"}");
@@ -219,10 +319,222 @@ class AuthService {
         Servidor.json(ex, 200, "{\"ok\":true}");
     }
 
-    private void eu(HttpExchange ex) throws IOException {
+    private void eu(HttpExchange ex) throws IOException, SQLException {
         Usuario u = usuarioDaSessao(ex);
         if (u == null) { erro(ex, 401, "não autenticado"); return; }
-        Servidor.json(ex, 200, "{\"nome\":\"" + Servidor.escaparJson(u.nome) + "\",\"email\":\"" + Servidor.escaparJson(u.email) + "\"}");
+        String nomeFam = "";
+        try (Connection c = conectar(); PreparedStatement ps = c.prepareStatement("SELECT nome FROM familias WHERE id = ?")) {
+            ps.setLong(1, u.familiaId);
+            try (ResultSet rs = ps.executeQuery()) { if (rs.next()) nomeFam = rs.getString(1); }
+        }
+        Servidor.json(ex, 200, "{\"nome\":\"" + Servidor.escaparJson(u.nome) + "\",\"email\":\"" + Servidor.escaparJson(u.email)
+                + "\",\"cargo\":\"" + Servidor.escaparJson(u.cargo) + "\",\"familia\":\"" + Servidor.escaparJson(nomeFam) + "\"}");
+    }
+
+    /**
+     * POST /api/auth/senha (atual, nova, confirmar) - troca a senha de quem está logado.
+     * Exige a senha atual e encerra as outras sessões da conta (a sessão atual continua).
+     */
+    private void alterarSenha(HttpExchange ex) throws IOException, SQLException {
+        Usuario u = usuarioDaSessao(ex);
+        if (u == null) { erro(ex, 401, "não autenticado"); return; }
+        Map<String, String> f = Servidor.formulario(ex);
+        String atual = f.getOrDefault("atual", ""), nova = f.getOrDefault("nova", ""), conf = f.getOrDefault("confirmar", "");
+
+        if (nova.length() < 6) { erro(ex, 400, "A nova senha deve ter pelo menos 6 caracteres."); return; }
+        if (nova.length() > 128) { erro(ex, 400, "Senha muito longa."); return; }
+        if (!nova.equals(conf)) { erro(ex, 400, "As senhas não conferem."); return; }
+
+        try (Connection c = conectar()) {
+            byte[] salAtual = null, esperado = null;
+            try (PreparedStatement ps = c.prepareStatement("SELECT senha_sal, senha_hash FROM usuarios WHERE id = ?")) {
+                ps.setLong(1, u.id);
+                try (ResultSet rs = ps.executeQuery()) { if (rs.next()) { salAtual = rs.getBytes(1); esperado = rs.getBytes(2); } }
+            }
+            if (esperado == null || atual.length() > 128 || !MessageDigest.isEqual(hash(atual, salAtual), esperado)) {
+                erro(ex, 400, "Senha atual incorreta."); return;   // 400 (e não 401) para a página não achar que a sessão caiu
+            }
+            if (atual.equals(nova)) { erro(ex, 400, "A nova senha deve ser diferente da atual."); return; }
+
+            byte[] sal = new byte[16];
+            RND.nextBytes(sal);
+            try (PreparedStatement ps = c.prepareStatement("UPDATE usuarios SET senha_sal = ?, senha_hash = ? WHERE id = ?")) {
+                ps.setBytes(1, sal); ps.setBytes(2, hash(nova, sal)); ps.setLong(3, u.id);
+                ps.executeUpdate();
+            }
+            try (PreparedStatement ps = c.prepareStatement("DELETE FROM sessoes WHERE usuario_id = ? AND token_hash <> ?")) {
+                ps.setLong(1, u.id); ps.setString(2, sha256(token(ex)));
+                ps.executeUpdate();
+            }
+        }
+        Servidor.json(ex, 200, "{\"ok\":true}");
+    }
+
+    // ---------- família ----------
+
+    /** GET /api/auth/familia -> membros da família do usuário logado. */
+    private void familia(HttpExchange ex) throws IOException, SQLException {
+        Usuario u = usuarioDaSessao(ex);
+        if (u == null) { erro(ex, 401, "não autenticado"); return; }
+        String nomeFam = "";
+        StringBuilder membros = new StringBuilder();
+        try (Connection c = conectar()) {
+            try (PreparedStatement ps = c.prepareStatement("SELECT nome FROM familias WHERE id = ?")) {
+                ps.setLong(1, u.familiaId);
+                try (ResultSet rs = ps.executeQuery()) { if (rs.next()) nomeFam = rs.getString(1); }
+            }
+            try (PreparedStatement ps = c.prepareStatement(
+                    "SELECT id, nome, email, cargo FROM usuarios WHERE familia_id = ? ORDER BY (cargo = 'admin') DESC, id")) {
+                ps.setLong(1, u.familiaId);
+                try (ResultSet rs = ps.executeQuery()) {
+                    while (rs.next()) {
+                        if (membros.length() > 0) membros.append(',');
+                        membros.append("{\"nome\":\"").append(Servidor.escaparJson(rs.getString(2)))
+                                .append("\",\"email\":\"").append(Servidor.escaparJson(rs.getString(3)))
+                                .append("\",\"cargo\":\"").append(Servidor.escaparJson(rs.getString(4)))
+                                .append("\",\"eu\":").append(rs.getLong(1) == u.id).append('}');
+                    }
+                }
+            }
+        }
+        Servidor.json(ex, 200, "{\"familia\":\"" + Servidor.escaparJson(nomeFam) + "\",\"souAdmin\":" + "admin".equals(u.cargo)
+                + ",\"membros\":[" + membros + "]}");
+    }
+
+    /**
+     * POST /api/auth/familia/adicionar (email) - só admin.
+     * Move a pessoa para a família do admin como "usuario" (ela perde o cargo de admin).
+     * A família antiga é apagada se ficar vazia; se sobrar gente sem admin, o membro mais antigo vira admin.
+     */
+    private void adicionarMembro(HttpExchange ex) throws IOException, SQLException {
+        Usuario eu = usuarioDaSessao(ex);
+        if (eu == null) { erro(ex, 401, "não autenticado"); return; }
+        if (!"admin".equals(eu.cargo)) { erro(ex, 403, "Só o administrador pode adicionar membros."); return; }
+        String email = normalizar(Servidor.formulario(ex).get("email"));
+        if (email.isEmpty()) { erro(ex, 400, "Informe o email da pessoa."); return; }
+
+        int status = 200; String msg = null, nomeAlvo = "";
+        try (Connection c = conectar()) {
+            c.setAutoCommit(false);
+            try {
+                long alvoId = -1, famAntiga = 0;
+                try (PreparedStatement ps = c.prepareStatement("SELECT id, nome, familia_id FROM usuarios WHERE email = ? FOR UPDATE")) {
+                    ps.setString(1, email);
+                    try (ResultSet rs = ps.executeQuery()) {
+                        if (rs.next()) { alvoId = rs.getLong(1); nomeAlvo = rs.getString(2); famAntiga = rs.getLong(3); }
+                    }
+                }
+                if (alvoId == -1) { status = 404; msg = "Nenhum usuário cadastrado com esse email."; }
+                else if (alvoId == eu.id || famAntiga == eu.familiaId) { status = 409; msg = "Essa pessoa já está na sua família."; }
+                else {
+                    try (PreparedStatement ps = c.prepareStatement("UPDATE usuarios SET familia_id = ?, cargo = 'usuario' WHERE id = ?")) {
+                        ps.setLong(1, eu.familiaId); ps.setLong(2, alvoId);
+                        ps.executeUpdate();
+                    }
+                    long restantes, admins;
+                    try (PreparedStatement ps = c.prepareStatement(
+                            "SELECT COUNT(*), COALESCE(SUM(cargo = 'admin'), 0) FROM usuarios WHERE familia_id = ?")) {
+                        ps.setLong(1, famAntiga);
+                        try (ResultSet rs = ps.executeQuery()) { rs.next(); restantes = rs.getLong(1); admins = rs.getLong(2); }
+                    }
+                    if (restantes == 0 && !ehOrigem(c, famAntiga)) {
+                        try (PreparedStatement ps = c.prepareStatement("DELETE FROM familias WHERE id = ?")) {
+                            ps.setLong(1, famAntiga);
+                            ps.executeUpdate();
+                        }
+                    } else if (restantes > 0 && admins == 0) {
+                        try (PreparedStatement ps = c.prepareStatement(
+                                "UPDATE usuarios SET cargo = 'admin' WHERE id = (SELECT id FROM (SELECT MIN(id) AS id FROM usuarios WHERE familia_id = ?) t)")) {
+                            ps.setLong(1, famAntiga);
+                            ps.executeUpdate();
+                        }
+                    }
+                }
+                if (msg == null) c.commit(); else c.rollback();
+            } catch (SQLException | RuntimeException e) {
+                c.rollback();
+                throw e;
+            }
+        }
+        if (msg != null) { erro(ex, status, msg); return; }
+        Servidor.json(ex, 200, "{\"ok\":true,\"nome\":\"" + Servidor.escaparJson(nomeAlvo) + "\"}");
+    }
+
+    /**
+     * POST /api/auth/familia/remover (email) - só admin.
+     * A pessoa removida volta para a família criada no cadastro dela (admin de novo);
+     * só ganha uma família nova se aquela não existir mais ou for a própria família atual.
+     */
+    private void removerMembro(HttpExchange ex) throws IOException, SQLException {
+        Usuario eu = usuarioDaSessao(ex);
+        if (eu == null) { erro(ex, 401, "não autenticado"); return; }
+        if (!"admin".equals(eu.cargo)) { erro(ex, 403, "Só o administrador pode remover membros."); return; }
+        String email = normalizar(Servidor.formulario(ex).get("email"));
+        if (email.isEmpty()) { erro(ex, 400, "Informe o email da pessoa."); return; }
+        if (email.equals(eu.email)) { erro(ex, 400, "Você não pode remover a si mesmo da família."); return; }
+
+        int status = 200; String msg = null, nomeAlvo = "";
+        try (Connection c = conectar()) {
+            c.setAutoCommit(false);
+            try {
+                long alvoId = -1, famAlvo = 0, origem = 0;
+                try (PreparedStatement ps = c.prepareStatement("SELECT id, nome, familia_id, familia_origem_id FROM usuarios WHERE email = ? FOR UPDATE")) {
+                    ps.setString(1, email);
+                    try (ResultSet rs = ps.executeQuery()) {
+                        if (rs.next()) { alvoId = rs.getLong(1); nomeAlvo = rs.getString(2); famAlvo = rs.getLong(3); origem = rs.getLong(4); }
+                    }
+                }
+                if (alvoId == -1 || famAlvo != eu.familiaId) { status = 404; msg = "Essa pessoa não faz parte da sua família."; }
+                else {
+                    // volta para a família criada no cadastro; se ela não existir ou for a atual, cria uma nova
+                    long destino = origem;
+                    if (destino == 0 || destino == eu.familiaId) destino = criarFamilia(c, nomeAlvo);
+                    try (PreparedStatement ps = c.prepareStatement(
+                            "UPDATE usuarios SET familia_id = ?, familia_origem_id = ?, cargo = 'admin' WHERE id = ?")) {
+                        ps.setLong(1, destino); ps.setLong(2, destino); ps.setLong(3, alvoId);
+                        ps.executeUpdate();
+                    }
+                }
+                if (msg == null) c.commit(); else c.rollback();
+            } catch (SQLException | RuntimeException e) {
+                c.rollback();
+                throw e;
+            }
+        }
+        if (msg != null) { erro(ex, status, msg); return; }
+        Servidor.json(ex, 200, "{\"ok\":true,\"nome\":\"" + Servidor.escaparJson(nomeAlvo) + "\"}");
+    }
+
+    /**
+     * POST /api/auth/familia/cargo (email, cargo=admin|usuario) - só admin.
+     * Promove um membro a admin ou rebaixa outro admin a usuário comum.
+     * O admin não altera o próprio cargo, assim a família nunca fica sem administrador.
+     */
+    private void alterarCargo(HttpExchange ex) throws IOException, SQLException {
+        Usuario eu = usuarioDaSessao(ex);
+        if (eu == null) { erro(ex, 401, "não autenticado"); return; }
+        if (!"admin".equals(eu.cargo)) { erro(ex, 403, "Só o administrador pode alterar cargos."); return; }
+        Map<String, String> f = Servidor.formulario(ex);
+        String email = normalizar(f.get("email"));
+        String cargo = f.getOrDefault("cargo", "");
+        if (!cargo.equals("admin") && !cargo.equals("usuario")) { erro(ex, 400, "Cargo inválido."); return; }
+        if (email.equals(eu.email)) { erro(ex, 400, "Você não pode alterar o seu próprio cargo."); return; }
+
+        String nomeAlvo;
+        try (Connection c = conectar()) {
+            String atual = null; nomeAlvo = "";
+            try (PreparedStatement ps = c.prepareStatement("SELECT nome, cargo FROM usuarios WHERE email = ? AND familia_id = ?")) {
+                ps.setString(1, email); ps.setLong(2, eu.familiaId);
+                try (ResultSet rs = ps.executeQuery()) { if (rs.next()) { nomeAlvo = rs.getString(1); atual = rs.getString(2); } }
+            }
+            if (atual == null) { erro(ex, 404, "Essa pessoa não faz parte da sua família."); return; }
+            if (atual.equals(cargo)) { erro(ex, 409, "Essa pessoa já tem esse cargo."); return; }
+            try (PreparedStatement ps = c.prepareStatement("UPDATE usuarios SET cargo = ? WHERE email = ? AND familia_id = ?")) {
+                ps.setString(1, cargo); ps.setString(2, email); ps.setLong(3, eu.familiaId);
+                ps.executeUpdate();
+            }
+        }
+        Servidor.json(ex, 200, "{\"ok\":true,\"nome\":\"" + Servidor.escaparJson(nomeAlvo) + "\"}");
     }
 
     // ---------- sessão ----------
@@ -252,11 +564,11 @@ class AuthService {
         String t = token(ex);
         if (t == null) return null;
         try (Connection c = conectar();
-             PreparedStatement ps = c.prepareStatement("SELECT u.id, u.nome, u.email FROM sessoes s "
+             PreparedStatement ps = c.prepareStatement("SELECT u.id, u.nome, u.email, u.familia_id, u.cargo FROM sessoes s "
                      + "JOIN usuarios u ON u.id = s.usuario_id WHERE s.token_hash = ? AND s.expira_em > ?")) {
             ps.setString(1, sha256(t)); ps.setLong(2, System.currentTimeMillis());
             try (ResultSet rs = ps.executeQuery()) {
-                return rs.next() ? new Usuario(rs.getLong(1), rs.getString(2), rs.getString(3)) : null;
+                return rs.next() ? new Usuario(rs.getLong(1), rs.getString(2), rs.getString(3), rs.getLong(4), rs.getString(5)) : null;
             }
         } catch (SQLException e) {
             System.out.println("MySQL: erro ao validar sessão: " + e.getMessage());

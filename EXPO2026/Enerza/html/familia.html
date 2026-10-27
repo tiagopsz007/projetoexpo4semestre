@@ -4,7 +4,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Enerza - Usuário</title>
+    <title>Enerza - Família</title>
     <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/style.css">
 </head>
@@ -13,105 +13,31 @@
     <div class="scr">
         <header>
             <div class="logo"><img src="css/img/logoEnerza.png" alt="Logo Enerzā"></div>
-            <h1 class="t">Família</h1>
+            <h1 class="t" id="titulo">Família</h1>
         </header>
         <div class="grid w2c">
             <nav class="box"><a href="inicio.html"><img src="css/img/casa.png" alt="Início"></a>
                 <a href="dispositivos.html"><img src="css/img/lampada.png" alt="Dispositivos"></a>
-                
                 <a href="sala.html"><img src="css/img/temp.png" alt="Sala"></a>
 
                 <div class="sp"></div>
-                
-                <a href="configuracao.html" class=on><img src="css/img/config.png" alt="Configurações"></a>
+
+                <a href="configuracao.html" class="on"><img src="css/img/config.png" alt="Configurações"></a>
                 <a href="index2.html" id="sair" title="Sair"><img src="css/img/saida.png" alt="Sair"></a>
             </nav>
             <div>
-                <div class="box fam">
-                        <div class="av">👤</div>
-                        
-                        <div>
-                            <b class="nome">Tiago Silva</b>
-                            <br>
-                            <br><small class="infopq">tiago@email.com</small>
-                            <br><small class="infopq">senha: ******************</small>
-                            <br><small class="infopq">cargo: Administrador</small>
-                        </div>
-
-                    <a class="btn" href="#" style="margin-left:auto">Editar</a>
-
+                <div class="box fam-add" id="add">
+                    <input type="email" id="emailNovo" placeholder="Email de quem já tem cadastro">
+                    <a class="btn" href="#" id="adicionar">Adicionar à família</a>
+                    <div class="fam-msg" id="msg" role="alert"></div>
                 </div>
 
-                <div class="box fam">
-                        <div class="av">👤</div>
-                        
-                        <div>
-                            <b class="nome">miguel</b>
-                            <br>
-                            <br><small class="infopq">miguel@email.com</small>
-                            <br><small class="infopq">senha: ******************</small>
-                            <br><small class="infopq">cargo: Usuário comum</small>
-                        </div>
-
-                    <a class="btn" href="#" style="margin-left:auto">Editar</a>
-
-                </div>
-
-                <div class="box fam">
-                        <div class="av">👤</div>
-                        
-                        <div>
-                            <b class="nome">augusto furin</b>
-                            <br>
-                            <br><small class="infopq">furin@email.com</small>
-                            <br><small class="infopq">senha: ******************</small>
-                            <br><small class="infopq">cargo: Usuário comum</small>
-                        </div>
-
-                    <a class="btn" href="#" style="margin-left:auto">Editar</a>
-
-                </div>
-
-                <div class="box fam">
-                        <div class="av">👤</div>
-                        
-                        <div>
-                            <b class="nome">matheus vinicius</b>
-                            <br>
-                            <br><small class="infopq">castrin@email.com</small>
-                            <br><small class="infopq">senha: ******************</small>
-                            <br><small class="infopq">cargo: Usuário comum</small>
-                        </div>
-
-                    <a class="btn" href="#" style="margin-left:auto">Editar</a>
-
-                </div>
-
-                <div class="box fam">
-                        <div class="av">👤</div>
-                        
-                        <div>
-                            <b class="nome">eduardo moraes</b>
-                            <br>
-                            <br><small class="infopq">edudev@email.com</small>
-                            <br><small class="infopq">senha: ******************</small>
-                            <br><small class="infopq">cargo: Usuário comum</small>
-                        </div>
-
-                    <a class="btn" href="#" style="margin-left:auto">Editar</a>
-
-                </div>
-
-                
-
-                
-                
-                   
-                </div>
-                
+                <div class="fam-lista" id="lista"></div>
             </div>
         </div>
     </div>
+
+    <script src="script/familia.js"></script>
 </body>
 
 </html>

@@ -13,7 +13,7 @@
     <div class="scr">
         <header>
             <div class="logo"><img src="css/img/logoEnerza.png" alt="Logo Enerzā"></div>
-            <h1 class="t">Usuario</h1>
+            <h1 class="t">Usuário</h1>
         </header>
         <div class="grid w2c">
             <nav class="box"><a href="inicio.html"><img src="css/img/casa.png" alt="Início"></a>
@@ -28,19 +28,31 @@
             </nav>
             <div>
                 <div class="box prof">
-                        <div class="av">👤</div>
-                        
-                        <div>
-                            <b class="nome">Tiago Silva</b>
-                            <br>
-                            <br><small class="infopq">tiago@email.com</small>
-                            <br><small class="infopq">senha: ******************</small>
-                            <br><small class="infopq">cargo: Administrador</small>
-                        </div>
-
-                    <a class="btn" href="#" style="margin-left:auto">Editar</a>
-
+                    <div class="av">👤</div>
+                    <div class="fam-info">
+                        <div class="fam-nome" id="nome">Carregando...</div>
+                        <div class="fam-email" id="email"></div>
+                        <div class="fam-fam" id="familia"></div>
+                    </div>
+                    <span class="badge" id="cargo"></span>
+                    <a class="btn" href="#" id="abrirSenha">Redefinir senha</a>
                 </div>
+
+                <div class="box senha-box" id="senhaBox">
+                    <h4>Redefinir senha</h4>
+                    <label for="atual">Senha atual</label>
+                    <input type="password" id="atual" autocomplete="current-password">
+                    <label for="nova">Nova senha</label>
+                    <input type="password" id="nova" autocomplete="new-password">
+                    <label for="confirmar">Confirmar nova senha</label>
+                    <input type="password" id="confirmar" autocomplete="new-password">
+                    <div class="fam-msg" id="msg" role="alert"></div>
+                    <div class="acoes">
+                        <a class="btn" href="#" id="salvarSenha">Salvar</a>
+                        <a class="btn o" href="#" id="cancelarSenha">Cancelar</a>
+                    </div>
+                </div>
+
                 <div class="pref">
                     <div class="box">
                         <h4>Preferências</h4><select>
@@ -64,6 +76,7 @@
             </div>
         </div>
     </div>
+    <script src="script/usuario.js"></script>
 </body>
 
 </html>
