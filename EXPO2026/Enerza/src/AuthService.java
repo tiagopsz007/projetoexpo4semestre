@@ -45,7 +45,7 @@ class AuthService {
     private static final long LONGA = 30L * 24 * 3600;   // "manter conectado": 30 dias
     private static final long CURTA = 12L * 3600;        // sessão normal: 12 horas
 
-    private static class Usuario {
+    static class Usuario {
         final long id, familiaId; final String nome, email, cargo;
         Usuario(long id, String nome, String email, long familiaId, String cargo) {
             this.id = id; this.nome = nome; this.email = email; this.familiaId = familiaId; this.cargo = cargo;
@@ -70,7 +70,7 @@ class AuthService {
 
     // ---------- banco ----------
 
-    private Connection conectar() throws SQLException {
+    Connection conectar() throws SQLException {
         return DriverManager.getConnection(urlBanco, dbUsuario, dbSenha);
     }
 
@@ -560,7 +560,7 @@ class AuthService {
                 + (manter ? "; Max-Age=" + dur : ""));
     }
 
-    private Usuario usuarioDaSessao(HttpExchange ex) {
+    Usuario usuarioDaSessao(HttpExchange ex) {
         String t = token(ex);
         if (t == null) return null;
         try (Connection c = conectar();

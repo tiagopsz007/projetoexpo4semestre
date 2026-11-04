@@ -36,22 +36,13 @@
                 </div>
                 <div class="box energy">
                     <h3>Gastos<br>do banheiro</h3>
-                    <div class="row">
-                        <div class="ic">💡</div>
-                        <div><b>Lâmpada</b><small>2 dispositivo</small></div><span class="w">8 W</span>
-                    </div>
-                    <div class="row">
-                        <div class="ic">🌀</div>
-                        <div><b>Exaustor</b><small>1 dispositivo</small></div><span class="w">30 W</span>
-                    </div>
-                </div>
+                    <div class="gastos" data-comodo="banheiro"><small class="gastos-vazio">Carregando...</small></div>
+</div>
             </div>
             <div class="right">
                 <div class="box pad">
                     <h3>Timer do banho</h3>
-                    <div class="chips">
-                        <div class="big">00:00</div><a class="btn" href="#">Iniciar</a>
-                    </div>
+                    <div class="chips" data-timer="banho" data-msg="O tempo do seu banho acabou!" data-presets="5,10,15"></div>
                 </div>
                 <div class="box rooms">
                     <div class="view p-banheiro">
@@ -61,6 +52,8 @@
             </div>
         </div>
     </div>
+    <script src="script/gastos.js"></script>
+    <script src="script/timer.js"></script>
 </body>
 
 </html>

@@ -29,6 +29,7 @@ import java.util.concurrent.Executors;
  * - /api/auth/*                    -> cadastro e login
  * - /spotify/*  e /api/spotify/*  -> integração com o Spotify (exige login)
  * - /api/xiaomi/*                  -> controle de aparelhos Xiaomi (exige login)
+ * - /api/dispositivos/*            -> tomadas/lâmpadas Smart Life (Tuya), por família, no MySQL (exige login)
  */
 public class Servidor {
 
@@ -75,6 +76,7 @@ public class Servidor {
         }
         SpotifyService spotify = new SpotifyService(cfg, base);
         XiaomiService xiaomi = new XiaomiService(cfg);
+        DispositivoService dispositivos = new DispositivoService(cfg, auth);
 
         HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", porta), 0);
         server.setExecutor(Executors.newFixedThreadPool(8));
@@ -82,6 +84,7 @@ public class Servidor {
         server.createContext("/spotify/", protegido(spotify::tratar));
         server.createContext("/api/spotify/", protegido(spotify::tratar));
         server.createContext("/api/xiaomi/", protegido(xiaomi::tratar));
+        server.createContext("/api/dispositivos/", protegido(dispositivos::tratar));
         server.createContext("/", Servidor::arquivoEstatico);
         server.start();
 

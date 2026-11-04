@@ -18,25 +18,50 @@
         <div class="grid w2c">
             <nav class="box"><a href="inicio.html"><img src="css/img/casa.png" alt="Início"></a>
                 <a href="dispositivos.html" class=on><img src="css/img/lampada.png" alt="Dispositivos"></a>
-                
+
                 <a href="sala.html"><img src="css/img/temp.png" alt="Sala"></a>
 
                 <div class="sp"></div>
-                
+
                 <a href="configuracao.html"><img src="css/img/config.png" alt="Configurações"></a>
                 <a href="index2.html" id="sair" title="Sair"><img src="css/img/saida.png" alt="Sair"></a>
             </nav>
-            <div class="dev"><label class="dc"><input type="checkbox" checked><span
-                        class="e">📺</span><b>tv's</b><small>total: 450w</small></label><label class="dc"><input
-                        type="checkbox"><span class="e">🎮</span><b>games</b><small>total: 440w</small></label><label
-                    class="dc"><input type="checkbox" checked><span class="e">💡</span><b>lâmpada</b><small>total:
-                        35w</small></label><label class="dc"><input type="checkbox"><span
-                        class="e">🍳</span><b>forno</b><small>total: 2250w</small></label><label class="dc"><input
-                        type="checkbox" checked><span class="e">❄️</span><b>condicionado</b><small>total:
-                        2400w</small></label><label class="dc"><input type="checkbox"><span
-                        class="e">💡</span><b>lâmpada</b><small>total: 1500w</small></label></div>
+
+            <div class="dev-wrap">
+                <div class="dev-bar">
+                    <span class="dev-resumo" id="resumo">Carregando aparelhos...</span>
+                    <a href="#" class="btn peq" id="abrirAdd" style="display:none">+ Adicionar aparelho</a>
+                </div>
+
+                <!-- formulário de novo aparelho (só admin) -->
+                <div class="box fam-add dev-add" id="addBox">
+                    <select id="descobertos" style="display:none"></select>
+                    <input type="text" id="tuyaId" placeholder="Device ID da Tuya" autocomplete="off">
+                    <input type="text" id="nome" placeholder="Nome (ex.: Ventilador)" maxlength="60">
+                    <select id="comodo">
+                        <option value="">Cômodo...</option>
+                        <option value="sala">Sala</option>
+                        <option value="cozinha">Cozinha</option>
+                        <option value="quarto">Quarto</option>
+                        <option value="banheiro">Banheiro</option>
+                    </select>
+                    <select id="icone">
+                        <option>🔌</option><option>💡</option><option>📺</option><option>🎮</option>
+                        <option>❄️</option><option>🌀</option><option>🍳</option><option>☕</option>
+                        <option>🔥</option><option>💧</option><option>🖥️</option><option>🔊</option>
+                    </select>
+                    <input type="number" id="potencia" class="peq" placeholder="Watts" min="0" max="20000">
+                    <a href="#" class="btn peq" id="salvarAdd">Salvar</a>
+                    <a href="#" class="btn o peq" id="cancelarAdd">Cancelar</a>
+                </div>
+                <div class="fam-msg" id="msg"></div>
+
+                <div class="dev" id="lista"></div>
+            </div>
         </div>
     </div>
+
+    <script src="script/dispositivos.js"></script>
 </body>
 
 </html>
