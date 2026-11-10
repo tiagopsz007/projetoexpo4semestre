@@ -14,6 +14,7 @@
         <header>
             <div class="logo"><img src="css/img/logoEnerza.png" alt="Logo Enerzā"></div>
             <h1 class="t">Banheiro</h1>
+            <div class="temp-pill" id="temp-topo" title="Taboão da Serra - SP">-- c°</div>
             <div class="tabs"><a href="inicio.html">Inicio</a><a href="sala.html">Sala</a><a
                     href="cozinha.html">Cozinha</a><a href="quarto.html">Quarto</a><a href="banheiro.html"
                     class=on>Banheiro</a></div>
@@ -30,10 +31,6 @@
                 <a href="index2.html" id="sair" title="Sair"><img src="css/img/saida.png" alt="Sair"></a>
             </nav>
             <div class="col">
-                <div class="box weather">
-                    <div class="ico">⛅</div>
-                    <div class="tt">25 c°</div>
-                </div>
                 <div class="box energy">
                     <h3>Gastos<br>do banheiro</h3>
                     <div class="gastos" data-comodo="banheiro"><small class="gastos-vazio">Carregando...</small></div>
@@ -44,15 +41,13 @@
                     <h3>Timer do banho</h3>
                     <div class="chips" data-timer="banho" data-msg="O tempo do seu banho acabou!" data-presets="5,10,15"></div>
                 </div>
-                <div class="box rooms">
-                    <div class="view p-banheiro">
-                        <div class="tag">Banheiro <label class="star"><input type="checkbox" checked>★</label></div>
-                    </div>
-                </div>
+                <div class="box ctl-painel" data-comodo="banheiro"></div>
             </div>
         </div>
     </div>
     <script src="script/gastos.js"></script>
+    <script src="script/clima.js"></script>
+    <script src="script/controle.js"></script>
     <script src="script/timer.js"></script>
 </body>
 

@@ -28,7 +28,6 @@ import java.util.concurrent.Executors;
  * - Serve os arquivos HTML/CSS/JS/imagens da pasta do projeto
  * - /api/auth/*                    -> cadastro e login
  * - /spotify/*  e /api/spotify/*  -> integração com o Spotify (exige login)
- * - /api/xiaomi/*                  -> controle de aparelhos Xiaomi (exige login)
  * - /api/dispositivos/*            -> tomadas/lâmpadas Smart Life (Tuya), por família, no MySQL (exige login)
  */
 public class Servidor {
@@ -61,7 +60,7 @@ public class Servidor {
                 cfg.load(r);
             }
         } else {
-            System.out.println("AVISO: config.properties não encontrado - Spotify e Xiaomi ficarão desativados.");
+            System.out.println("AVISO: config.properties não encontrado - Spotify e Tuya ficarão desativados.");
         }
 
         int porta = Integer.parseInt(cfg.getProperty("porta", "8080"));
@@ -75,7 +74,6 @@ public class Servidor {
             System.exit(1);
         }
         SpotifyService spotify = new SpotifyService(cfg, base);
-        XiaomiService xiaomi = new XiaomiService(cfg);
         DispositivoService dispositivos = new DispositivoService(cfg, auth);
 
         HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", porta), 0);
@@ -83,7 +81,6 @@ public class Servidor {
         server.createContext("/api/auth/", auth::tratar);
         server.createContext("/spotify/", protegido(spotify::tratar));
         server.createContext("/api/spotify/", protegido(spotify::tratar));
-        server.createContext("/api/xiaomi/", protegido(xiaomi::tratar));
         server.createContext("/api/dispositivos/", protegido(dispositivos::tratar));
         server.createContext("/", Servidor::arquivoEstatico);
         server.start();

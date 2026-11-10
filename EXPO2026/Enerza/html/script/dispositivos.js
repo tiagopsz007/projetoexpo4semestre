@@ -1,5 +1,5 @@
 const $ = id => document.getElementById(id);
-let souAdmin = false, ocupado = false, intervalo = 10;
+let souAdmin = false, ocupado = false, intervalo = 10, luzId = null;
 
 function mostrarMsg(texto, ok) {
     const m = $("msg");
@@ -48,6 +48,13 @@ function cartao(d) {
         cb.disabled = false; ocupado = false;
     };
 
+    if (d.luz && !d.erro) {
+        const bt = document.createElement("button");
+        bt.className = "lz"; bt.type = "button"; bt.textContent = "🎨 Cor e brilho";
+        bt.onclick = ev => { ev.preventDefault(); ev.stopPropagation(); abrirLuz(d); };
+        lb.append(bt);
+    }
+
     if (souAdmin) {
         const cm = document.createElement("select"); cm.className = "cm"; cm.title = "Cômodo";
         for (const k in NOMES) cm.append(new Option(NOMES[k], k));
@@ -82,6 +89,10 @@ async function carregar() {
         $("descobertos").dataset.pode = j.podeDescobrir ? "1" : "";
         const ds = j.dispositivos;
         $("lista").replaceChildren(...ds.map(cartao));
+        if (luzId !== null) {
+            const l = ds.find(x => x.id === luzId);
+            if (l && l.luz) sincLuz(l, false); else fecharLuz();
+        }
         if (!j.configurado) $("resumo").textContent = "Tuya não configurada: preencha tuya.client.id e tuya.client.secret no config.properties.";
         else if (!ds.length) $("resumo").textContent = souAdmin ? "Nenhum aparelho ainda. Clique em “+ Adicionar aparelho”." : "Nenhum aparelho cadastrado na sua família.";
         else {
@@ -95,6 +106,68 @@ async function carregar() {
         else if (e.message !== "sessão expirada") $("resumo").textContent = e.message;
     }
 }
+
+/* ---------- lâmpada: cor, brilho e branco ---------- */
+const CORES = ["#ff0000", "#ff8000", "#ffff00", "#00ff00", "#00ffff", "#0000ff", "#8000ff", "#ff00ff"];
+let luzMexendo = false;
+
+function montarCores() {
+    const caixa = $("luzSw");
+    CORES.forEach(c => {
+        const b = document.createElement("button");
+        b.type = "button"; b.className = "sw"; b.style.background = c; b.title = c;
+        b.onclick = () => { $("luzCor").value = c; enviarLuz({ cor: c }); };
+        caixa.append(b);
+    });
+    const br = document.createElement("button");
+    br.type = "button"; br.className = "sw branco"; br.textContent = "☀"; br.title = "Luz branca";
+    br.onclick = () => enviarLuz({ modo: "branco" });
+    caixa.append(br);
+}
+
+function abrirLuz(d) {
+    luzId = d.id;
+    $("luzBox").style.display = "flex";
+    sincLuz(d, true);
+    $("luzBox").scrollIntoView({ behavior: "smooth", block: "nearest" });
+}
+
+function fecharLuz() { luzId = null; $("luzBox").style.display = "none"; }
+
+function sincLuz(d, forcar) {
+    const z = d.luz;
+    $("luzNome").textContent = d.icone + " " + d.nome;
+    $("luzCorLin").style.display = z.temCor ? "flex" : "none";
+    $("luzBrilhoLin").style.display = z.temBrilho ? "flex" : "none";
+    $("luzTempLin").style.display = z.temTemp ? "flex" : "none";
+    const lig = d.ligado === true;
+    $("luzBox").classList.toggle("desl", !lig);
+    $("luzAviso").style.display = lig ? "none" : "block";
+    if (!forcar && (luzMexendo || $("luzBox").contains(document.activeElement))) return;   // não atropela quem está mexendo
+    $("luzCor").value = z.cor;
+    $("luzBrilho").value = z.brilho; $("luzBrilhoV").textContent = z.brilho + "%";
+    if (z.temp !== null) $("luzTemp").value = z.temp;
+}
+
+async function enviarLuz(params) {
+    if (luzId === null) return;
+    luzMexendo = true;
+    try {
+        await api("/api/dispositivos/luz", { id: luzId, ...params });
+        mostrarMsg("", true);
+        setTimeout(() => { luzMexendo = false; carregar(); }, 1200);
+    } catch (e) {
+        luzMexendo = false;
+        mostrarMsg(e.message, false);
+    }
+}
+
+$("luzCor").onchange = e => enviarLuz({ cor: e.target.value });
+$("luzBrilho").oninput = e => { $("luzBrilhoV").textContent = e.target.value + "%"; };
+$("luzBrilho").onchange = e => enviarLuz({ brilho: e.target.value });
+$("luzTemp").onchange = e => enviarLuz({ temp: e.target.value });
+$("luzFechar").onclick = e => { e.preventDefault(); fecharLuz(); };
+montarCores();
 
 /* ---------- adicionar ---------- */
 async function abrirAdd() {
@@ -146,7 +219,8 @@ $("sair").onclick = async e => {
 };
 
 // atualiza sozinha no intervalo definido em tuya.atualizar.segundos, só com a aba visível (a Tuya limita as chamadas)
-(async function ciclo() {
-    if (document.visibilityState === "visible") await carregar();
+(async function ciclo(primeira) {
+    if (primeira || document.visibilityState === "visible") await carregar();   // a 1ª carga sempre acontece
     setTimeout(ciclo, intervalo * 1000);
-})();
+})(true);
+document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") carregar(); });

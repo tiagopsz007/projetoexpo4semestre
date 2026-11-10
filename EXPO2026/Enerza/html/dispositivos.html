@@ -56,6 +56,15 @@
                 </div>
                 <div class="fam-msg" id="msg"></div>
 
+                <!-- painel de lâmpada (cor, brilho, branco) -->
+                <div class="box luz-painel" id="luzBox">
+                    <div class="luz-topo"><b id="luzNome">Lâmpada</b><a href="#" class="btn o peq" id="luzFechar">Fechar</a></div>
+                    <div class="luz-lin" id="luzCorLin"><span class="luz-rot">Cor</span><input type="color" id="luzCor" value="#ffffff"><div class="luz-sw" id="luzSw"></div></div>
+                    <div class="luz-lin" id="luzBrilhoLin"><span class="luz-rot">Brilho</span><input type="range" id="luzBrilho" min="1" max="100" value="100"><output id="luzBrilhoV">100%</output></div>
+                    <div class="luz-lin" id="luzTempLin"><span class="luz-rot">Branco</span><small>quente</small><input type="range" id="luzTemp" min="0" max="100" value="50"><small>frio</small></div>
+                    <small class="luz-aviso" id="luzAviso">Ligue a lâmpada para ajustar.</small>
+                </div>
+
                 <div class="dev" id="lista"></div>
             </div>
         </div>

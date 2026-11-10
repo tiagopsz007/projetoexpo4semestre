@@ -14,6 +14,7 @@
         <header>
             <div class="logo"><img src="css/img/logoEnerza.png" alt="Logo Enerzā"></div>
             <h1 class="t">Cozinha</h1>
+            <div class="temp-pill" id="temp-topo" title="Taboão da Serra - SP">-- c°</div>
             <div class="tabs"><a href="inicio.html">Inicio</a><a href="sala.html">Sala</a><a href="cozinha.html"
                     class=on>Cozinha</a><a href="quarto.html">Quarto</a><a href="banheiro.html">Banheiro</a></div>
         </header>
@@ -29,10 +30,6 @@
                 <a href="index2.html" id="sair" title="Sair"><img src="css/img/saida.png" alt="Sair"></a>
             </nav>
             <div class="col">
-                <div class="box weather">
-                    <div class="ico">⛅</div>
-                    <div class="tt">25 c°</div>
-                </div>
                 <div class="box energy">
                     <h3>Gastos<br>da Cozinha</h3>
                     <div class="gastos" data-comodo="cozinha"><small class="gastos-vazio">Carregando...</small></div>
@@ -43,6 +40,7 @@
                     <h3>Timer da cozinha</h3>
                     <div class="chips" data-timer="cozinha" data-msg="A comida está pronta!" data-presets="10,20,30"></div>
                 </div>
+                <div class="box ctl-painel" data-comodo="cozinha"></div>
                 <div class="box pad">
                     <div class="tiles"><label class="tile p-cozinha"><input type="checkbox" checked>Forno</label><label
                             class="tile p-cozinha"><input type="checkbox">Fogão</label><label class="tile p-sala"><input
@@ -53,6 +51,8 @@
         </div>
     </div>
     <script src="script/gastos.js"></script>
+    <script src="script/clima.js"></script>
+    <script src="script/controle.js"></script>
     <script src="script/timer.js"></script>
 </body>
 

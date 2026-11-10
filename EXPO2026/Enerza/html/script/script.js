@@ -1,5 +1,5 @@
 /* ===== Enerzā - página de início =====
-   O navegador fala só com o servidor Java (/api/...). Tokens do Spotify e da Xiaomi ficam no Java. */
+   O navegador fala só com o servidor Java (/api/...). O token do Spotify fica no Java. */
 const $ = id => document.getElementById(id);
 
 /* ---------- Spotify ---------- */
@@ -57,92 +57,9 @@ if (new URLSearchParams(location.search).get("spotify") === "erro") {
 } else spAtualizar();
 setInterval(spAtualizar, 3000);
 
-/* ---------- Xiaomi ---------- */
-function xmLinha(d) {
-    const linha = document.createElement("div");
-    linha.className = "row";
-    const ic = document.createElement("div"); ic.className = "ic"; ic.textContent = d.icone;
-    const txt = document.createElement("div");
-    const b = document.createElement("b"); b.textContent = d.nome;
-    const sm = document.createElement("small");
-    sm.textContent = d.erro ? "⚠ " + d.erro : (d.ligado ? "Ligado" : "Desligado");
-    txt.append(b, sm);
-
-    const tg = document.createElement("label"); tg.className = "tg";
-    const cb = document.createElement("input"); cb.type = "checkbox"; cb.checked = !!d.ligado; cb.disabled = !!d.erro;
-    tg.append(cb, document.createElement("span"));
-    cb.onchange = async () => {
-        cb.disabled = true; sm.textContent = "Enviando...";
-        try {
-            const r = await fetch(`/api/xiaomi/ligar?id=${encodeURIComponent(d.id)}&valor=${cb.checked}`, { method: "POST" });
-            const j = await r.json();
-            if (!r.ok) throw new Error(j.erro);
-            sm.textContent = cb.checked ? "Ligado" : "Desligado";
-        } catch (e) {
-            cb.checked = !cb.checked; sm.textContent = "⚠ " + e.message;
-        }
-        cb.disabled = false;
-    };
-    linha.append(ic, txt, tg);
-    return linha;
-}
-
-async function xmCarregar() {
-    const lista = $("xm-lista");
-    try {
-        const r = await fetch("/api/xiaomi/dispositivos");
-        const ds = await r.json();
-        lista.replaceChildren(...ds.map(xmLinha));
-        if (!ds.length) lista.textContent = "Nenhum aparelho configurado no config.properties.";
-    } catch (e) {
-        lista.textContent = "Servidor offline.";
-    }
-}
-xmCarregar();
-
 /* ---------- Sessão ---------- */
 $("sair").onclick = async e => {
     e.preventDefault();
     try { await fetch("/api/auth/logout", { method: "POST" }); } catch (_) { }
     location.href = "/";
 };
-
-async function carregarClima() {
-    // Coordenadas de Taboão da Serra - SP
-    const latitude = -23.6261;
-    const longitude = -46.7533;
-
-    // URL da API
-    const url = `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,weather_code`;
-
-    try {
-        const resposta = await fetch(url);
-        const dados = await resposta.json();
-
-        const temperatura = Math.round(dados.current.temperature_2m);
-        const codigoClima = dados.current.weather_code;
-
-        // Atualiza a temperatura e ícone
-        document.querySelector('.weather .tt').innerText = `${temperatura} c°`;
-        document.querySelector('.weather .ico').innerText = traduzirClimaParaEmoji(codigoClima);
-        
-        // Define o nome da região
-        document.querySelector('.weather .loc').innerText = "Taboão da Serra - SP";
-
-    } catch (erro) {
-        console.log("Erro ao buscar o clima:", erro);
-        document.querySelector('.weather .tt').innerText = "-- c°";
-        document.querySelector('.weather .loc').innerText = "Localização indisponível";
-    }
-}
-
-// Função simples para mapear o código numérico da API para um emoji
-function traduzirClimaParaEmoji(codigo) {
-    if (codigo === 0) return "☀️"; // Céu limpo
-    if (codigo >= 1 && codigo <= 3) return "⛅"; // Parcialmente nublado
-    if (codigo >= 51 && codigo <= 67) return "🌧️"; // Chuva
-    return "☁️"; // Nublado por padrão
-}
-
-// Executa a função ao carregar a página
-carregarClima();

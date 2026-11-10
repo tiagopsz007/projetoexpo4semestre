@@ -1485,3 +1485,317 @@ nav a:hover {
 @media (prefers-reduced-motion: reduce) {
   .alarme { animation-duration: 2.4s }
 }
+
+/* Lâmpada: cor, brilho e branco */
+.dc button.lz {
+  margin-top: 6px;
+  padding: 4px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, .08);
+  color: var(--txt);
+  font: 13px Quicksand, sans-serif;
+  cursor: pointer
+}
+
+.dc button.lz:hover {
+  border-color: var(--y);
+  color: var(--y)
+}
+
+.luz-painel {
+  display: none;
+  flex-direction: column;
+  gap: 14px;
+  padding: 16px 18px;
+  margin-bottom: 14px
+}
+
+.luz-painel.desl .luz-lin {
+  opacity: .45;
+  pointer-events: none
+}
+
+.luz-topo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 18px
+}
+
+.luz-lin {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap
+}
+
+.luz-rot {
+  width: 64px;
+  color: var(--mut)
+}
+
+.luz-lin input[type=range] {
+  flex: 1;
+  min-width: 140px;
+  accent-color: var(--y)
+}
+
+.luz-lin input[type=color] {
+  width: 48px;
+  height: 36px;
+  padding: 0;
+  border: 1px solid var(--glass-edge);
+  border-radius: 8px;
+  background: none;
+  cursor: pointer
+}
+
+.luz-lin output {
+  width: 44px;
+  text-align: right
+}
+
+.luz-sw {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap
+}
+
+.luz-sw .sw {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, .5);
+  cursor: pointer;
+  padding: 0
+}
+
+.luz-sw .sw:hover {
+  transform: scale(1.12)
+}
+
+.luz-sw .sw.branco {
+  background: #fff;
+  color: #444;
+  font-size: 15px;
+  line-height: 1
+}
+
+.luz-aviso {
+  display: none;
+  color: var(--mut)
+}
+
+/* Temperatura no topo */
+.temp-pill {
+  margin-left: auto;
+  padding: 8px 20px;
+  font-size: 20px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, var(--glass-hi), rgba(255, 255, 255, 0) 42%), var(--glass);
+  border: 1px solid var(--glass-edge);
+  box-shadow: var(--glass-shadow);
+  white-space: nowrap
+}
+
+.temp-pill+.tabs {
+  margin-left: 0
+}
+
+/* Painel de aparelhos (tomadas e lâmpada) */
+.ctl-painel {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex: 1
+}
+
+.ctl-topo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 18px
+}
+
+.ctl-topo .btn.off {
+  opacity: .45
+}
+
+.ctl-msg {
+  color: #ff8a80;
+  font-size: 14px;
+  min-height: 0
+}
+
+.ctl-msg:empty {
+  display: none
+}
+
+.ctl-corpo {
+  display: grid;
+  grid-template-columns: 1fr 260px;
+  gap: 16px;
+  flex: 1;
+  min-height: 0
+}
+
+.ctl-corpo.uma {
+  grid-template-columns: 1fr
+}
+
+.ctl-vazio {
+  grid-column: 1 / -1;
+  color: var(--mut);
+  text-align: center;
+  padding: 24px 0
+}
+
+.ctl-vazio a {
+  color: var(--y)
+}
+
+.ctl-plugs {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-height: 440px;
+  overflow-y: auto;
+  padding-right: 2px
+}
+
+.ctl-plug,
+.ctl-lamp {
+  border: 1px solid var(--glass-edge);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, .04)
+}
+
+.ctl-plug {
+  padding: 10px 16px 12px
+}
+
+.ctl-plug.indisp {
+  opacity: .6
+}
+
+.ctl-nome {
+  text-align: center;
+  font-size: 22px;
+  margin-bottom: 6px
+}
+
+.ctl-lin {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px
+}
+
+.ctl-lin small {
+  color: var(--mut);
+  font-size: 14px
+}
+
+.ctl-lamp {
+  padding: 12px 14px 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px
+}
+
+.ctl-lamp.desl .ctl-roda,
+.ctl-lamp.desl .ctl-brilho {
+  opacity: .45
+}
+
+.ctl-abas {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: center
+}
+
+.ctl-abas button {
+  border: 1px solid var(--glass-edge);
+  background: transparent;
+  color: var(--mut);
+  border-radius: 8px;
+  padding: 3px 10px;
+  font: 13px Quicksand, sans-serif;
+  cursor: pointer
+}
+
+.ctl-abas button.on {
+  background: var(--y);
+  color: #222;
+  border-color: var(--y)
+}
+
+.ctl-power {
+  width: 104px;
+  height: 104px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--mut);
+  cursor: pointer;
+  transition: .2s
+}
+
+.ctl-power svg {
+  width: 100%;
+  height: 100%
+}
+
+.ctl-power.on {
+  color: #fff;
+  filter: drop-shadow(0 0 10px rgba(255, 211, 107, .55))
+}
+
+.ctl-power:hover {
+  color: var(--y)
+}
+
+.ctl-roda {
+  position: relative;
+  width: 170px;
+  height: 170px;
+  border-radius: 50%;
+  cursor: crosshair;
+  background: radial-gradient(closest-side, #fff, rgba(255, 255, 255, 0)),
+    conic-gradient(#f00, #ff0, #0f0, #0ff, #00f, #f0f, #f00);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, .4)
+}
+
+.ctl-marca {
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 3px solid #fff;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, .5), 0 2px 6px rgba(0, 0, 0, .5);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  display: none
+}
+
+.ctl-brilho {
+  width: 90%;
+  accent-color: var(--y)
+}
+
+@media (max-width: 900px) {
+  .ctl-corpo {
+    grid-template-columns: 1fr
+  }
+}
+
+.ctl-acoes {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap
+}

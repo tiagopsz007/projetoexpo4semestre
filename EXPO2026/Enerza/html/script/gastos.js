@@ -66,8 +66,9 @@
         }
     }
 
-    (async function ciclo() {
-        if (document.visibilityState === "visible") await carregar();
+    (async function ciclo(primeira) {
+        if (primeira || document.visibilityState === "visible") await carregar();   // a 1ª carga sempre acontece
         setTimeout(ciclo, intervalo * 1000);
-    })();
+    })(true);
+    document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") carregar(); });
 })();

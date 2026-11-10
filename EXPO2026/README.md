@@ -1,6 +1,6 @@
 # EXPO2026 - Enerza
 
-Enerzā é um painel de casa inteligente feito para a EXPO2026. Um servidor Java entrega as páginas HTML e integra login/cadastro (com MySQL), Spotify, aparelhos Xiaomi e tomadas/lâmpadas Smart Life (Tuya), tudo em uma tela só.
+Enerzā é um painel de casa inteligente feito para a EXPO2026. Um servidor Java entrega as páginas HTML e integra login/cadastro (com MySQL), Spotify e tomadas/lâmpadas Smart Life (Tuya), tudo em uma tela só.
 
 ## Funcionalidades
 
@@ -9,21 +9,21 @@ Enerzā é um painel de casa inteligente feito para a EXPO2026. Um servidor Java
   - Sessão por cookie (`HttpOnly`, `SameSite=Lax`), também guardada no banco. Reiniciar o servidor não derruba o login.
   - Opção "Manter conectado": 30 dias. Sem ela, a sessão dura até fechar o navegador (máximo de 12 horas).
   - Botão de sair (⏻) na tela inicial.
-- **Páginas protegidas:** a tela inicial e as APIs do Spotify, da Xiaomi e dos dispositivos só funcionam para quem está logado. Sem login, o usuário é levado para a tela de login.
+- **Páginas protegidas:** a tela inicial e as APIs do Spotify e dos dispositivos só funcionam para quem está logado. Sem login, o usuário é levado para a tela de login.
 - **Spotify:** mostra a música atual com capa e progresso, e permite play/pause, próxima e anterior. O token do Spotify fica só no servidor, o navegador nunca o vê.
-- **Aparelhos Xiaomi (Mi Home):** lista o estado e liga/desliga lâmpadas, tomadas, ventiladores, umidificadores, ar-condicionado, aspiradores etc. Há duas formas de integrar:
-  - pela integração oficial Xiaomi Home, via Home Assistant (recomendado);
-  - direto pela rede local, com o protocolo miIO.
 - **Dispositivos Smart Life (Tuya):** tomadas e lâmpadas que usam o app Smart Life são controladas pela nuvem da Tuya. Os aparelhos ficam cadastrados no MySQL, por família: todos os membros ligam e desligam, só o administrador adiciona, remove e troca o cômodo. A página **Dispositivos** mostra cada aparelho com o cômodo, o botão liga/desliga e o consumo.
+- **Lâmpadas inteligentes (Tuya):** além de ligar e desligar, dá para ajustar a **cor RGB**, o **brilho** e a **temperatura do branco**. O sistema detecta sozinho o que cada lâmpada suporta e só mostra esses controles.
 - **Gastos de energia por cômodo:** ao cadastrar um aparelho, você escolhe em qual cômodo ele está (Sala, Cozinha, Quarto ou Banheiro). A caixa de gastos de cada cômodo lista só os aparelhos dele, e a tela inicial mostra os 5 que mais gastam na casa. O consumo vem da medição da tomada (se ela mede) ou da potência em watts informada no cadastro. Aparelho desligado conta 0 W.
 - **Timers da cozinha e do banheiro:** você define minutos e segundos (ou usa um atalho), inicia, pausa ou zera. Quando o tempo acaba, toca um aviso sonoro e a tela pisca em vermelho com a frase do cômodo ("A comida está pronta!" na cozinha e "O tempo do seu banho acabou!" no banheiro).
-- **Tela inicial:** clima, principais gastos de energia (aparelhos cadastrados), Wi-Fi, cômodos e câmera (parte visual).
+- **Painel de aparelhos em cada cômodo:** nas páginas Sala, Cozinha, Quarto e Banheiro (e, com todos os aparelhos da casa, na tela inicial) há um painel para apagar a luz e as tomadas daquele cômodo. Cada tomada tem seu botão liga/desliga e mostra o consumo. A lâmpada tem um botão de ligar/desligar grande, uma **roda de cores** (clique na cor desejada; o centro é branco) e um controle de brilho. O botão **Desligar tudo** desliga todos os aparelhos ligados do cômodo. Na tela inicial também há o **Ligar tudo**, e os dois agem na casa toda, pedindo confirmação. Aparelhos offline são ignorados. Para ter o "Ligar tudo" em uma página de cômodo, acrescente `data-ligar-tudo` ao `<div class="box ctl-painel">` dela.
+- **Temperatura no topo:** a temperatura atual de Taboão da Serra - SP (Open-Meteo, sem chave) aparece numa pílula ao lado das abas, em todas as páginas de cômodo e na tela inicial.
+- **Tela inicial:** temperatura, principais gastos de energia (aparelhos cadastrados), player do Spotify, Wi-Fi (parte visual) e o painel de aparelhos da casa.
 
 ## Requisitos
 
 - **JDK 17 ou superior** (recomendado o 21), com `javac` disponível. Para instalar: `winget install EclipseAdoptium.Temurin.21.JDK`
 - **MySQL** rodando (MySQL Server ou XAMPP).
-- Opcional: conta Spotify Premium (para controlar a reprodução), aparelhos Xiaomi na mesma rede ou um Home Assistant.
+- Opcional: conta Spotify Premium (para controlar a reprodução).
 - Opcional: conta gratuita na plataforma de desenvolvedores da Tuya (platform.tuya.com) e o app Smart Life, para as tomadas e lâmpadas Smart Life.
 
 O driver do MySQL (`mysql-connector-j`) é baixado automaticamente pelo `executar.bat` na pasta `lib`, na primeira execução.
@@ -47,21 +47,21 @@ EXPO2026\
 │   ├── Servidor.java               servidor HTTP, entrega HTML/CSS/JS/imagens e protege as rotas
 │   ├── AuthService.java            cadastro, login e sessões (MySQL)
 │   ├── SpotifyService.java         login no Spotify e play/pause/próxima
-│   ├── XiaomiService.java          liga/desliga aparelhos Xiaomi
 │   ├── DispositivoService.java     aparelhos Smart Life por família e cômodo (tabela dispositivos)
 │   ├── TuyaClient.java             cliente da API da Tuya (assinatura, token, comandos, estado)
-│   ├── MiioClient.java             protocolo miIO (rede local)
-│   └── HomeAssistantService.java   integração com o Home Assistant
+│   └── LuzTuya.java                cor, brilho e temperatura das lâmpadas Tuya
 └── html\
     ├── login2.html, cadastro.html, inicio.html, dispositivos.html
     ├── sala.html, cozinha.html, quarto.html, banheiro.html
     ├── css\                style.css e img\
     └── script\
-        ├── script.js       tela inicial (chama /api/spotify/* e /api/xiaomi/*)
+        ├── script.js       tela inicial (chama /api/spotify/*)
         ├── login.js        tela de login
         ├── cadastro.js     tela de cadastro
         ├── dispositivos.js página Dispositivos (lista, liga/desliga, cadastro, cômodo)
         ├── gastos.js       caixas de gastos dos cômodos e da tela inicial
+        ├── controle.js     painel de aparelhos (tomadas, lâmpada, roda de cores)
+        ├── clima.js        temperatura no topo das páginas
         └── timer.js        timers da cozinha e do banheiro
 ```
 
@@ -87,11 +87,6 @@ db.senha=SUA_SENHA
 spotify.client.id=
 spotify.client.secret=
 
-# Home Assistant + integração Xiaomi Home (opcional)
-ha.url=http://homeassistant.local:8123
-ha.token=
-ha.integracao=xiaomi_home
-
 # Tuya / Smart Life (opcional)
 # Endpoint do data center do seu projeto: openapi.tuyaus.com (Western America, comum no Brasil),
 # openapi-ueaz.tuyaus.com, openapi.tuyaeu.com, openapi.tuyain.com ou openapi.tuyacn.com
@@ -100,22 +95,11 @@ tuya.client.id=
 tuya.client.secret=
 tuya.uid=
 tuya.atualizar.segundos=10
-
-# Aparelhos Xiaomi pela rede local (opcional)
-xiaomi.dispositivos=luz
-xiaomi.luz.nome=Luz da sala
-xiaomi.luz.icone=💡
-xiaomi.luz.ip=192.168.0.20
-xiaomi.luz.token=32_CARACTERES_HEXADECIMAIS
-xiaomi.luz.protocolo=miot
-xiaomi.luz.siid=2
-xiaomi.luz.piid=1
 ```
 
 - `tuya.uid` é opcional: com ele, o botão "+ Adicionar aparelho" lista os aparelhos da sua conta Smart Life para escolher. Sem ele, você cola o Device ID.
 - `tuya.atualizar.segundos` define de quantos em quantos segundos as páginas atualizam estado e consumo (mínimo 2, padrão 10). Menos segundos deixa o consumo mais "ao vivo", mas gasta mais chamadas da cota da Tuya.
-- Sem as chaves do Spotify, o player fica desativado. Sem `ha.*` e sem `xiaomi.*`, a lista de aparelhos Xiaomi fica vazia. Sem `tuya.client.*`, a página Dispositivos avisa que a Tuya não está configurada.
-- O exemplo `xiaomi.luz.*` usa IP e token fictícios, só para mostrar o formato. Troque pelos seus ou apague o bloco.
+- Sem as chaves do Spotify, o player fica desativado. Sem `tuya.client.*`, a página Dispositivos avisa que a Tuya não está configurada.
 - O `config.properties` guarda senhas e tokens. Ele nunca é entregue pelo servidor web, mas não o envie para repositórios públicos.
 
 ## MySQL
@@ -157,31 +141,6 @@ Se existir um arquivo `.usuarios` da versão anterior (sem MySQL), as contas sã
 
 Controlar a música (play/pause/próxima) exige Spotify Premium. Ver o que está tocando funciona em qualquer conta.
 
-## Xiaomi Home oficial (ha_xiaomi_home) - recomendado
-
-A integração oficial da Xiaomi (https://github.com/XiaoMi/ha_xiaomi_home) é um plugin do **Home Assistant**. Por isso o Enerzā conversa com o Home Assistant, e ele conversa com a nuvem Xiaomi.
-
-1. Instale o Home Assistant (no Windows: Home Assistant OS numa máquina virtual VirtualBox/Hyper-V, veja https://www.home-assistant.io/installation/windows, ou num Raspberry Pi).
-2. Instale a integração Xiaomi Home: pelo HACS (procure "Xiaomi Home") ou, no terminal do Home Assistant:
-   `cd /config && git clone https://github.com/XiaoMi/ha_xiaomi_home.git && cd ha_xiaomi_home && ./install.sh /config`
-3. Reinicie o Home Assistant → Configurações → Dispositivos e serviços → Adicionar integração → **Xiaomi Home**. Faça login com a conta do app Mi Home e escolha os aparelhos.
-   O login da Xiaomi volta para `http://homeassistant.local:8123`. Se o PC não achar esse endereço, adicione em `C:\Windows\System32\drivers\etc\hosts` a linha `IP_DO_HOME_ASSISTANT homeassistant.local`.
-4. No Home Assistant: clique no seu perfil → Segurança → **Tokens de acesso de longa duração** → Criar token.
-5. No `config.properties`, preencha `ha.url=http://homeassistant.local:8123` e `ha.token=` com o token criado.
-
-Os aparelhos aparecem sozinhos no card "Xiaomi Home" da página de início, com botão liga/desliga.
-
-## Xiaomi direto pela rede local (alternativa sem Home Assistant)
-
-Não existe API oficial para controlar o app Mi Home. Esta opção fala direto com os aparelhos pela rede local usando o protocolo miIO (o mesmo do Home Assistant). O PC precisa estar na mesma rede Wi-Fi.
-
-Para cada aparelho você precisa de **IP** e **token**:
-- **Token:** use o *Xiaomi Cloud Tokens Extractor* (https://github.com/PiotrMachowski/Xiaomi-cloud-tokens-extractor), entrando com a mesma conta do app Mi Home. Ele lista nome, IP, modelo e token de cada aparelho.
-- **`protocolo=miot`** serve para a maioria dos aparelhos novos. Liga/desliga costuma ser `siid=2 piid=1`. Confira o modelo em https://home.miot-spec.com se não funcionar.
-- **`protocolo=legado`** é para aparelhos antigos e lâmpadas Yeelight.
-
-Aparelhos que só funcionam por Bluetooth/Zigbee (sem Wi-Fi próprio) não respondem pela rede local.
-
 ## Aparelhos Smart Life (Tuya)
 
 Tomadas e lâmpadas genéricas que se conectam pelo app **Smart Life** usam a nuvem da Tuya. O Enerzā chama a API da Tuya pelo servidor Java (o Client ID e o Secret nunca chegam ao navegador). Como o controle passa pela nuvem, o aparelho só precisa estar online no Wi-Fi dele, não importa em qual rede o servidor está.
@@ -205,6 +164,16 @@ Tomadas e lâmpadas genéricas que se conectam pelo app **Smart Life** usam a nu
 5. Salvar. O servidor confirma com a Tuya que enxerga o aparelho e descobre sozinho qual é o interruptor dele.
 
 O administrador pode trocar o cômodo de um aparelho depois pelo seletor no card, e remover pelo ✕.
+
+### Lâmpadas: cor, brilho e branco
+
+Em lâmpadas Tuya, o card ganha o botão **🎨 Cor e brilho**, que abre um painel com:
+
+- **Cor:** seletor de cor (RGB) e atalhos para as cores mais comuns. Clicar no ☀ volta para a luz branca.
+- **Brilho:** controle deslizante de 1 a 100%.
+- **Branco:** do quente ao frio, se a lâmpada tiver essa função.
+
+Cada ajuste vira um comando na Tuya quando você solta o controle. A lâmpada precisa estar ligada. O sistema lê da própria lâmpada quais funções e faixas de valores ela aceita (versões `bright_value` e `bright_value_v2`, por exemplo), então lâmpadas só de branco não mostram o seletor de cor. Qualquer membro da família pode usar o painel.
 
 ### Consumo e gastos
 
@@ -243,13 +212,12 @@ Quando o tempo acaba, toca um aviso sonoro (três bipes) e a tela inteira pisca 
 | `GET /api/auth/eu` | Dados do usuário logado | sim |
 | `GET /api/spotify/player` | Estado do player | sim |
 | `POST /api/spotify/play`, `pause`, `next`, `previous` | Controles do player | sim |
-| `GET /api/xiaomi/dispositivos` | Lista os aparelhos e o estado | sim |
-| `POST /api/xiaomi/ligar?id=...&valor=true` | Liga ou desliga um aparelho | sim |
 | `GET /api/dispositivos/lista` | Aparelhos Smart Life da família, com estado, cômodo e consumo | sim |
 | `GET /api/dispositivos/descobrir` | Aparelhos da conta Smart Life ainda não cadastrados (admin, exige `tuya.uid`) | sim |
 | `POST /api/dispositivos/adicionar` | Cadastra um aparelho: `nome`, `icone`, `comodo`, `tuyaId`, `potencia` (admin) | sim |
 | `POST /api/dispositivos/editar` | Troca o cômodo: `id`, `comodo` (admin) | sim |
 | `POST /api/dispositivos/remover` | Remove um aparelho: `id` (admin) | sim |
+| `POST /api/dispositivos/luz` | Ajusta a lâmpada: `id` e um de `cor` (#rrggbb), `brilho` (1-100), `temp` (0-100) ou `modo=branco` | sim |
 | `POST /api/dispositivos/ligar` | Liga ou desliga: `id`, `valor=true\|false` | sim |
 
 ## Segurança
@@ -277,7 +245,7 @@ Se for publicar o projeto, adicione ao `.gitignore`: `config.properties`, `.spot
 | Dispositivos: assinatura recusada (1004) | Confira `tuya.client.id`, `tuya.client.secret` e se o `tuya.endpoint` é o do data center do projeto. |
 | Dispositivos: sem permissão para este aparelho (1106) | Vincule a conta Smart Life ao projeto (Devices → Link Tuya App Account) e confira o data center. |
 | Dispositivos: assinatura IoT Core expirada | Renove em **Cloud → My Services → Extend Trial Period** na plataforma da Tuya. |
+| Dispositivos: "Esta lâmpada não tem cor" | O modelo só tem branco (ou o cadastro foi feito com a lâmpada offline). Remova e cadastre de novo com ela online. |
 | Dispositivos: "offline" no card | A tomada está sem energia ou sem Wi-Fi. Confira se ela aparece online no app Smart Life. |
 | Dispositivos: "Tuya não configurada" | Preencha `tuya.client.id` e `tuya.client.secret` no `config.properties` e reinicie. |
 | Timer sem som | Clique em **Iniciar** (o clique libera o áudio) e confira o volume. A tela vermelha aparece de qualquer jeito. |
-| Aparelho Xiaomi com "⚠" | Confira IP e token (miIO) ou `ha.url` e `ha.token` (Home Assistant). |

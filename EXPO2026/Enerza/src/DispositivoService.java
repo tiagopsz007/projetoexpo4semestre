@@ -28,6 +28,7 @@ import java.util.stream.Collectors;
  * POST /api/dispositivos/remover   (id)                              (admin)
  * POST /api/dispositivos/editar    (id, comodo)                      (admin)
  * POST /api/dispositivos/ligar     (id, valor=true|false)
+ * POST /api/dispositivos/luz       (id + cor=#rrggbb | brilho=1-100 | temp=0-100 | modo=branco)   lâmpadas
  */
 class DispositivoService {
 
@@ -83,6 +84,7 @@ class DispositivoService {
             else if (p.equals("/api/dispositivos/remover") && post) remover(ex, u);
             else if (p.equals("/api/dispositivos/editar") && post) editar(ex, u);
             else if (p.equals("/api/dispositivos/ligar") && post) ligar(ex, u);
+            else if (p.equals("/api/dispositivos/luz") && post) luz(ex, u);
             else Servidor.json(ex, 404, "{\"erro\":\"rota inexistente\"}");
         } catch (SQLException e) {
             e.printStackTrace();
@@ -107,7 +109,7 @@ class DispositivoService {
     }
 
     private String paraJson(Linha l) {
-        String ligado = "null", watts = "null", erro = null;
+        String ligado = "null", watts = "null", erro = null, luz = "";
         if (!tuya.ativo()) erro = "Tuya não configurada no config.properties";
         else {
             try {
@@ -116,6 +118,10 @@ class DispositivoService {
                 if (!e.online) erro = "offline";
                 else if (cod == null) erro = "sem interruptor liga/desliga";
                 else ligado = String.valueOf(e.status.get(cod));
+                if (e.online) {
+                    LuzTuya z = LuzTuya.de(e.status, tuya.especificacoes(l.tuyaId));
+                    if (z != null) luz = ",\"luz\":" + z.estadoJson(e.status);
+                }
                 // tomadas com medição informam cur_power em décimos de watt
                 if (e.online && Boolean.TRUE.equals(e.status.get(cod)) && e.status.get("cur_power") instanceof Number)
                     watts = String.format(Locale.ROOT, "%.1f", ((Number) e.status.get("cur_power")).doubleValue() / 10.0);
@@ -125,7 +131,7 @@ class DispositivoService {
         }
         return "{\"id\":" + l.id + ",\"nome\":\"" + Servidor.escaparJson(l.nome) + "\",\"icone\":\"" + Servidor.escaparJson(l.icone)
                 + "\",\"comodo\":\"" + l.comodo + "\",\"potencia\":" + l.potencia + ",\"ligado\":" + ligado + ",\"watts\":" + watts
-                + (erro == null ? "" : ",\"erro\":\"" + Servidor.escaparJson(erro) + "\"") + "}";
+                + luz + (erro == null ? "" : ",\"erro\":\"" + Servidor.escaparJson(erro) + "\"") + "}";
     }
 
     private void ligar(HttpExchange ex, AuthService.Usuario u) throws IOException, SQLException {
@@ -144,6 +150,31 @@ class DispositivoService {
                 salvarCodigo(l.id, certo);
             }
             Servidor.json(ex, 200, "{\"ok\":true,\"ligado\":" + valor + "}");
+        } catch (IOException e) {
+            erro(ex, 502, e.getMessage());
+        }
+    }
+
+    /** Ajusta cor, brilho ou temperatura do branco de uma lâmpada. */
+    private void luz(HttpExchange ex, AuthService.Usuario u) throws IOException, SQLException {
+        Map<String, String> f = Servidor.formulario(ex);
+        Linha l = buscar(numero(f.get("id")), u.familiaId);
+        if (l == null) { erro(ex, 404, "Aparelho não encontrado."); return; }
+        try {
+            TuyaClient.Estado e = tuya.estado(l.tuyaId);
+            LuzTuya z = LuzTuya.de(e.status, tuya.especificacoes(l.tuyaId));
+            if (z == null) { erro(ex, 400, "Esse aparelho não tem controle de cor ou brilho."); return; }
+            try {
+                try {
+                    tuya.comandos(l.tuyaId, z.comandos(f, e.status, true));
+                } catch (TuyaClient.TuyaException t) {
+                    if (t.codigo != 2008) throw t;                 // algumas lâmpadas querem colour_data como objeto, não como texto
+                    tuya.comandos(l.tuyaId, z.comandos(f, e.status, false));
+                }
+            } catch (IllegalArgumentException v) {
+                erro(ex, 400, v.getMessage()); return;
+            }
+            Servidor.json(ex, 200, "{\"ok\":true}");
         } catch (IOException e) {
             erro(ex, 502, e.getMessage());
         }

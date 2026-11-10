@@ -85,6 +85,44 @@ class TuyaClient {
         cache.remove(deviceId);
     }
 
+    /** Envia vários comandos de uma vez. Cada item já é um JSON {"code":"...","value":...}. */
+    void comandos(String deviceId, List<String> comandosJson) throws IOException {
+        chamar("POST", "/v1.0/devices/" + deviceId + "/commands", "{\"commands\":[" + String.join(",", comandosJson) + "]}");
+        cache.remove(deviceId);
+    }
+
+    private final Map<String, Object[]> specs = new ConcurrentHashMap<>();   // id -> {momento, mapa}
+
+    /**
+     * Faixas de valores que o aparelho aceita (ex.: bright_value_v2 -> {min:10,max:1000};
+     * colour_data_v2 -> {h:{max:360},s:{max:1000},v:{max:1000}}). Guardado em memória.
+     * Se a Tuya não responder, devolve vazio e o chamador usa valores padrão.
+     */
+    Map<String, Object> especificacoes(String deviceId) {
+        Object[] c = specs.get(deviceId);
+        if (c != null) {
+            @SuppressWarnings("unchecked") Map<String, Object> m = (Map<String, Object>) c[1];
+            if (!m.isEmpty() || System.currentTimeMillis() - (Long) c[0] < 300_000) return m;
+        }
+        Map<String, Object> out = new LinkedHashMap<>();
+        try {
+            Map<String, Object> r = mapa(chamar("GET", "/v1.0/devices/" + deviceId + "/specifications", ""));
+            if (r.get("functions") instanceof List)
+                for (Object o : (List<?>) r.get("functions"))
+                    if (o instanceof Map && ((Map<?, ?>) o).get("values") instanceof String) {
+                        Object v = parseJson((String) ((Map<?, ?>) o).get("values"));
+                        if (v instanceof Map) out.put(String.valueOf(((Map<?, ?>) o).get("code")), v);
+                    }
+        } catch (IOException e) { /* usa os padrões */ }
+        specs.put(deviceId, new Object[]{System.currentTimeMillis(), out});
+        return out;
+    }
+
+    /** Converte texto JSON em Map/List/String/Double/Boolean, ou null se for inválido. */
+    static Object parseJson(String texto) {
+        try { return Json.parse(texto); } catch (IOException e) { return null; }
+    }
+
     /** Aparelhos da conta Smart Life vinculada ao projeto (precisa de tuya.uid). */
     List<Map<String, Object>> aparelhosDaConta() throws IOException {
         Object r = chamar("GET", "/v1.0/users/" + uid + "/devices", "");
